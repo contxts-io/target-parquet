@@ -10,7 +10,6 @@ setup(name = 'target-parquet',
       classifiers = ['Programming Language :: Python :: 3 :: Only'],
       py_modules = ['target_parquet'],
        install_requires=[
-          'jsonschema>=3.2.0',
           'singer-python>=5.0.12',
           'pandas==1.4.3',
           'pyarrow==6.0.1'
