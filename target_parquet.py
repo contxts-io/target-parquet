@@ -134,7 +134,7 @@ def persist_messages(messages, destination_path, destination_partition_path, fil
     # filepath = os.path.expanduser(os.path.join(destination_path, filename))
     filepath = os.path.join(destination_path, stream_name)
     if destination_partition_path:
-        filepath = os.path.join(destination_partition_path, filepath)
+        filepath = os.path.join(filepath, destination_partition_path)
 
     if file_name:
         filepath = os.path.join(filepath, file_name)
