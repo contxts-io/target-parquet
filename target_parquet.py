@@ -127,7 +127,6 @@ def persist_messages(messages, destination_path, destination_partition_path, fil
         if message_type == "STATE":
             LOGGER.debug("Setting state to {}".format(message["value"]))
             state = message["value"]
-            return state
 
         elif message_type == "RECORD":
             stream_name = message["stream"]
