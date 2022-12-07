@@ -90,6 +90,7 @@ def save_data(
     else:
         # Create a dataframe out of the record list and store it into a parquet file with the timestamp in the name.
         df = pd.DataFrame.from_records(records, coerce_float=True)
+
         df = df.astype(jsonschema_to_dataframe_schema(schema))
 
         if not file_name:
