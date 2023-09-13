@@ -6,6 +6,7 @@ import http.client
 import json
 import os
 import pandas as pd
+import logging
 import pkg_resources
 import singer
 import sys
@@ -82,8 +83,30 @@ def jsonschema_to_dataframe_schema(json_schema):
         return {}
 
 
+def df_to_parquets(df, compression_method: str, filepath: str, chunk_size: int = 10):
+    """
+    Saves pandas dataframe to parquet in chunks
+    """
+    extension_mapping = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
+
+    grp = df.groupby(df.index // chunk_size)
+    for index, (name, group) in enumerate(grp):
+        target_filepath = filepath + f"_{index}.parquet" + extension_mapping[compression_method]
+        group.to_parquet(target_filepath, compression=compression_method)
+
+        logging.info("Saved chunk {} to {}".format(index, target_filepath))
+
+    return True
+
+
 def save_data(
-    records, schema, destination_path, stream_name, destination_partition_path, file_name, compression_method
+    records,
+    schema,
+    destination_path,
+    stream_name,
+    destination_partition_path,
+    file_name,
+    compression_method,
 ):
     if len(records) == 0:
         LOGGER.info("There were not any records retrieved.")
@@ -97,22 +120,27 @@ def save_data(
             file_name = str(uuid4()) + ".parquet"
 
         if destination_partition_path:
-            filepath = os.path.join(destination_path, stream_name, destination_partition_path, file_name)
+            filepath = os.path.join(
+                destination_path, stream_name, destination_partition_path, file_name
+            )
         else:
             filepath = os.path.join(destination_path, stream_name, file_name)
 
         if compression_method:
             # The target is prepared to accept all the compression methods provided by the pandas module, with the mapping below,
             # but, at the moment, pyarrow only allow gzip compression.
-            extension_mapping = {"gzip": ".gz", "bz2": ".bz2", "zip": ".zip", "xz": ".xz"}
-            df.to_parquet(
-                filepath + extension_mapping[compression_method], engine="pyarrow", compression=compression_method
-            )
+            df_to_parquets(df, compression_method, filepath, 10)
         else:
             df.to_parquet(filepath, engine="pyarrow")
 
 
-def persist_messages(messages, destination_path, destination_partition_path, file_name, compression_method):
+def persist_messages(
+    messages,
+    destination_path,
+    destination_partition_path,
+    file_name,
+    compression_method,
+):
     state = None
     schema = None
 
@@ -131,7 +159,9 @@ def persist_messages(messages, destination_path, destination_partition_path, fil
 
         elif message_type == "RECORD":
             stream_name = message["stream"]
-            if current_stream_name is None or (current_stream_name is not None and current_stream_name != stream_name):
+            if current_stream_name is None or (
+                current_stream_name is not None and current_stream_name != stream_name
+            ):
                 raise Exception("You must send schema first before sending records")
             records.append(message["record"])
 
@@ -158,7 +188,15 @@ def persist_messages(messages, destination_path, destination_partition_path, fil
                 )
             )
 
-    save_data(records, schema, destination_path, stream_name, destination_partition_path, file_name, compression_method)
+    save_data(
+        records,
+        schema,
+        destination_path,
+        stream_name,
+        destination_partition_path,
+        file_name,
+        compression_method,
+    )
 
     return state
 
