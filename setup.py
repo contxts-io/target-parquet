@@ -12,7 +12,7 @@ setup(name = 'target-parquet',
        install_requires=[
           'singer-python>=5.0.12',
           'pandas==1.4.3',
-          'pyarrow==6.0.1'
+          'pyarrow>=14.0.1'
        ],
 
       entry_points='''
